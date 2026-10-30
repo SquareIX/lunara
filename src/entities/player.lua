@@ -36,10 +36,14 @@ function Player.new()
         boltCount    = 1,     -- projectiles per shot
         orbCount     = 0,     -- orbiting orbs (0 = weapon not unlocked yet)
         rocketCount  = 0,
+        pulseCount   = 0,
+        lightningCount = 0,
         critChance   = 0,
         critMult     = 2.0,
         regen        = cfg.regen,
         armor        = cfg.armor,
+        rerolls      = 3,
+        executioner  = false,
     }
     self.upgradeCounts = {}   -- upgrade id -> times taken
 

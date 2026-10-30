@@ -17,11 +17,11 @@ Upgrades.list = {
     },
     {
         id = "fire_rate", name = "Quick Cast", desc = "Weapons fire 15% faster", max = 10,
-        apply = function(p) p.stats.cooldownMult = p.stats.cooldownMult * 0.8 end,
+        apply = function(p) p.stats.cooldownMult = p.stats.cooldownMult * 0.9 end,
     },
     {
-        id = "damage", name = "Power Up", desc = "x1.5% weapon damage",
-        apply = function(p) p.stats.damageMult = p.stats.damageMult * 1.5 end,
+        id = "damage", name = "Power Up", desc = "x1.2% current damage",
+        apply = function(p) p.stats.damageMult = p.stats.damageMult * 1.2 end,
     },
     {
         id = "rocket", name = "Auto Rocket", desc = "+1 homing rocket with area damage", max = 5,
@@ -53,6 +53,12 @@ Upgrades.list = {
     { id = "crit", name = "Lucky Strike", desc = "+8% chance to deal double damage", max = 8, apply = function(p) p.stats.critChance = math.min(0.64, p.stats.critChance + 0.08) end },
     { id = "armor", name = "Iron Skin", desc = "Take 2 less damage from hits", max = 8, apply = function(p) p.stats.armor = p.stats.armor + 2 end },
     { id = "regen", name = "Regeneration", desc = "Recover 0.6 HP every second", max = 5, apply = function(p) p.stats.regen = p.stats.regen + 0.6 end },
+    { id = "pulse", name = "Shockwave", desc = "Unlock a damaging ring around you", max = 1, apply = function(p) p.stats.pulseCount = p.stats.pulseCount + 1 end },
+    { id = "lightning", name = "Chain Lightning", desc = "Strike up to 3 nearby enemies", max = 1, apply = function(p) p.stats.lightningCount = p.stats.lightningCount + 1 end },
+    { id = "overcharge", name = "Overcharge", desc = "+35% damage, but skills fire 8% slower", max = 4, apply = function(p) p.stats.damageMult = p.stats.damageMult * 1.35; p.stats.cooldownMult = p.stats.cooldownMult * 1.08 end },
+    { id = "haste", name = "Haste", desc = "All skills fire 18% faster", max = 6, apply = function(p) p.stats.cooldownMult = p.stats.cooldownMult * 0.82 end },
+    { id = "fortress", name = "Fortress", desc = "+20 max HP and +3 armor", max = 6, apply = function(p) p.stats.maxHp = p.stats.maxHp + 20; p.stats.armor = p.stats.armor + 3; p:heal(20) end },
+    { id = "executioner", name = "Executioner", desc = "+25% damage to enemies below half HP", max = 1, apply = function(p) p.stats.executioner = true end },
 }
 
 local function isAvailable(upgrade, player)

@@ -12,6 +12,7 @@ local Assets = require("src.assets")
 local Util = require("src.util")
 local Projectile = require("src.entities.projectile")
 local Rocket = require("src.entities.rocket")
+local Audio = require("src.audio")
 
 local Weapons = {}
 
@@ -31,6 +32,7 @@ function rocket.update(world, dt)
     end
     if not target then return end
     rocket.timer = cfg.cooldown * player.stats.cooldownMult
+    Audio.play("rocket")
     local angle = math.atan2(target.y - player.y, target.x - player.x)
     world:addProjectile(Rocket.new(player.x, player.y, angle, cfg.damage * player.stats.damageMult))
 end
@@ -64,6 +66,7 @@ function bolt.update(world, dt)
     if not target then return end
 
     bolt.timer = cfg.cooldown * player.stats.cooldownMult
+    Audio.play("bolt")
     local baseAngle = math.atan2(target.y - player.y, target.x - player.x)
     local count = player.stats.boltCount
     local damage = cfg.damage * player.stats.damageMult
@@ -109,7 +112,8 @@ function orbit.update(world, dt)
                 local critical = love.math.random() < player.stats.critChance
                 local hitDamage = damage * (critical and player.stats.critMult or 1)
                 enemy:takeDamage(hitDamage, world)
-                world:addFloatingText(enemy.x, enemy.y - enemy.radius - 8, math.floor(hitDamage + 0.5), critical and {1, 0.85, 0.25} or {1, 1, 1}, critical)
+                Audio.play("orbit")
+                world:addDamageNumber(enemy, hitDamage, critical and {1, 0.85, 0.25} or {1, 1, 1}, critical)
             end
         end
     end
@@ -129,10 +133,75 @@ function orbit.draw(world)
     end
 end
 
+-- PULSE: a periodic ring that hits every enemy around the player.
+local pulse = { timer = 0, flash = 0 }
+function pulse.reset() pulse.timer, pulse.flash = 0, 0 end
+function pulse.update(world, dt)
+    local player = world.player
+    if player.stats.pulseCount <= 0 then return end
+    local cfg = Config.weapons.pulse
+    pulse.timer = pulse.timer - dt
+    pulse.flash = math.max(0, pulse.flash - dt)
+    if pulse.timer > 0 then return end
+    pulse.timer = cfg.cooldown * player.stats.cooldownMult
+    pulse.flash = 0.22
+    Audio.play("pulse")
+    for _, enemy in ipairs(world.enemies) do
+        if not enemy.dead and Util.distance(player.x, player.y, enemy.x, enemy.y) <= cfg.radius then
+            local damage = cfg.damage * player.stats.damageMult
+            enemy:takeDamage(damage, world)
+            world:addDamageNumber(enemy, damage, {0.45, 0.9, 1}, false)
+        end
+    end
+end
+function pulse.draw(world)
+    if pulse.flash <= 0 then return end
+    local cfg = Config.weapons.pulse
+    love.graphics.setColor(0.35, 0.85, 1, pulse.flash / 0.22 * 0.45)
+    love.graphics.circle("line", world.player.x, world.player.y, cfg.radius * (1 - pulse.flash * 0.7))
+end
+
+-- LIGHTNING: chains through a few nearby targets whenever it fires.
+local lightning = { timer = 0, strikes = {} }
+function lightning.reset() lightning.timer, lightning.strikes = 0, {} end
+function lightning.update(world, dt)
+    local player = world.player
+    if player.stats.lightningCount <= 0 then return end
+    local cfg = Config.weapons.lightning
+    lightning.timer = lightning.timer - dt
+    if lightning.timer > 0 then return end
+    lightning.timer = cfg.cooldown * player.stats.cooldownMult
+    lightning.strikes = {}
+    Audio.play("lightning")
+    local fromX, fromY = player.x, player.y
+    local used = {}
+    for _ = 1, cfg.chains do
+        local target, best = nil, cfg.chainRange
+        for _, enemy in ipairs(world.enemies) do
+            local d = Util.distance(fromX, fromY, enemy.x, enemy.y)
+            if not enemy.dead and not used[enemy] and d < best then target, best = enemy, d end
+        end
+        if not target then break end
+        used[target] = true
+        lightning.strikes[#lightning.strikes + 1] = {fromX, fromY, target.x, target.y}
+        local damage = cfg.damage * player.stats.damageMult
+        target:takeDamage(damage, world)
+        world:addDamageNumber(target, damage, {0.85, 0.65, 1}, false)
+        fromX, fromY = target.x, target.y
+    end
+end
+function lightning.draw(world)
+    if #lightning.strikes == 0 then return end
+    love.graphics.setColor(0.85, 0.65, 1, 0.8)
+    love.graphics.setLineWidth(4)
+    for _, s in ipairs(lightning.strikes) do love.graphics.line(s[1], s[2], s[3], s[4]) end
+    love.graphics.setLineWidth(1)
+end
+
 ----------------------------------------------------------------------
 -- Public API used by world.lua
 ----------------------------------------------------------------------
-Weapons.list = { bolt, rocket, orbit }
+Weapons.list = { bolt, rocket, orbit, pulse, lightning }
 
 function Weapons.reset()
     for _, weapon in ipairs(Weapons.list) do

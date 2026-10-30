@@ -12,8 +12,9 @@ local UI = require("src.ui")
 local World = require("src.world")
 local Upgrades = require("src.upgrades")
 local Save = require("src.save")
+local Audio = require("src.audio")
 
-local state = "title"      -- "title" | "playing" | "levelup" | "paused" | "gameover"
+local state = "title"      -- "title" | "playing" | "levelup" | "paused" | "gameover" | "victory"
 local stateTime = 0        -- seconds spent in the current state
 local world = nil
 local upgradeChoices = {}  -- cards shown in the "levelup" state
@@ -32,6 +33,7 @@ local function startRun()
     world = World.new()
     newRecord = false
     setState("playing")
+    Audio.setMusic("normal")
 end
 
 local function openLevelUp()
@@ -52,6 +54,12 @@ local function chooseUpgrade(index)
     end
 end
 
+local function rerollUpgrades()
+    if state ~= "levelup" or world.player.stats.rerolls <= 0 then return end
+    world.player.stats.rerolls = world.player.stats.rerolls - 1
+    upgradeChoices = Upgrades.roll(world.player)
+end
+
 local function togglePause()
     if state == "playing" then
         setState("paused")
@@ -63,6 +71,11 @@ end
 local function endRun()
     newRecord = Save.submitTime(world.time)
     setState("gameover")
+end
+
+local function winRun()
+    newRecord = Save.submitTime(Config.objectiveSeconds)
+    setState("victory")
 end
 
 -- Game-over screen ignores input for a moment so you can't restart by accident.
@@ -77,6 +90,7 @@ function love.load()
     love.graphics.setDefaultFilter(Config.spriteFilter, Config.spriteFilter)
     love.math.setRandomSeed(os.time())
     Assets.load()
+    Audio.load()
     Save.load()
 end
 
@@ -85,10 +99,13 @@ function love.update(dt)
     stateTime = stateTime + dt
     if state ~= "playing" then return end
 
+    Audio.update(world)
     world:update(dt)
 
     if world.player:isDead() then
         endRun()
+    elseif world.time >= Config.objectiveSeconds then
+        winRun()
     elseif world.player.pendingLevelUps > 0 then
         openLevelUp()
     end
@@ -107,6 +124,7 @@ function love.draw()
     if state == "levelup" then UI.drawLevelUp(upgradeChoices, world.player) end
     if state == "paused" then UI.drawPaused() end
     if state == "gameover" then UI.drawGameOver(world, newRecord, canRestart()) end
+    if state == "victory" then UI.drawVictory(world, newRecord, canRestart()) end
 end
 
 ----------------------------------------------------------------------
@@ -119,11 +137,12 @@ function love.keypressed(key)
 
     if state == "title" then
         if key == "return" or key == "space" then startRun() end
-    elseif state == "gameover" then
+    elseif state == "gameover" or state == "victory" then
         if (key == "return" or key == "space") and canRestart() then startRun() end
     elseif state == "levelup" then
         local index = tonumber(key)
         if index then chooseUpgrade(index) end
+        if key == "r" then rerollUpgrades() end
     end
 
     if key == "escape" then togglePause() end
@@ -135,13 +154,14 @@ end
 local function pointerPressed(id, x, y)
     if state == "title" then
         startRun()
-    elseif state == "gameover" then
+    elseif state == "gameover" or state == "victory" then
         if canRestart() then startRun() end
     elseif state == "paused" then
         togglePause()
     elseif state == "levelup" then
         local index = UI.cardAt(#upgradeChoices, x, y)
-        if index then chooseUpgrade(index) end
+        if index then chooseUpgrade(index)
+        elseif UI.rerollButtonHit(x, y) then rerollUpgrades() end
     elseif state == "playing" then
         if UI.pauseButtonHit(x, y) then
             togglePause()

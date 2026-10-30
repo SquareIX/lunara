@@ -24,9 +24,12 @@ function World.new()
     self.projectiles = {}
     self.gems = {}
     self.floatingTexts = {}
+    self.damageBuckets = {}
     self.time = 0            -- seconds survived
     self.kills = 0
     self.spawnTimer = 0.5
+    self.nextBossTime = Config.spawn.bossInterval
+    self.bossWarning = 0
     self.camera = { x = 0, y = 0 }
     Weapons.reset()
     return self
@@ -47,6 +50,29 @@ function World:addFloatingText(x, y, text, color, critical)
     self.floatingTexts[#self.floatingTexts + 1] = FloatingText.new(x, y, text, color, critical)
 end
 
+-- Hits landing close together on one enemy are shown as one combined number.
+function World:addDamageNumber(enemy, amount, color, critical)
+    local bucket = self.damageBuckets[enemy]
+    if not bucket then
+        bucket = { amount = 0, timer = 0.09, color = color, critical = false }
+        self.damageBuckets[enemy] = bucket
+    end
+    bucket.amount = bucket.amount + amount
+    bucket.color = color or bucket.color
+    bucket.critical = bucket.critical or critical
+    bucket.timer = 0.09
+end
+
+function World:updateDamageNumbers(dt)
+    for enemy, bucket in pairs(self.damageBuckets) do
+        bucket.timer = bucket.timer - dt
+        if bucket.timer <= 0 then
+            self:addFloatingText(enemy.x, enemy.y - enemy.radius - 8, math.floor(bucket.amount + 0.5), bucket.color, bucket.critical)
+            self.damageBuckets[enemy] = nil
+        end
+    end
+end
+
 ----------------------------------------------------------------------
 -- Spawning
 ----------------------------------------------------------------------
@@ -54,11 +80,11 @@ end
 local function pickEnemyType(time)
     local total = 0
     for _, def in pairs(Config.enemies) do
-        if time >= def.unlockTime then total = total + def.weight end
+        if not def.boss and time >= def.unlockTime then total = total + def.weight end
     end
     local roll = love.math.random() * total
     for name, def in pairs(Config.enemies) do
-        if time >= def.unlockTime then
+        if not def.boss and time >= def.unlockTime then
             roll = roll - def.weight
             if roll <= 0 then return name end
         end
@@ -80,6 +106,14 @@ end
 
 function World:updateSpawning(dt)
     local cfg = Config.spawn
+    if self.time >= self.nextBossTime then
+        local hpScale = 1 + (self.time / 60) * cfg.bossHpScalePerMinute
+        local x, y = self:randomSpawnPoint()
+        self.enemies[#self.enemies + 1] = Enemy.new("boss", x, y, hpScale)
+        self.nextBossTime = self.nextBossTime + cfg.bossInterval
+        self.bossWarning = 3
+    end
+    self.bossWarning = math.max(0, self.bossWarning - dt)
     self.spawnTimer = self.spawnTimer - dt
     if self.spawnTimer > 0 then return end
 
@@ -116,6 +150,7 @@ function World:update(dt)
     updateAll(self.enemies, dt, self)
     updateAll(self.projectiles, dt, self)
     updateAll(self.gems, dt, self)
+    self:updateDamageNumbers(dt)
     updateAll(self.floatingTexts, dt, self)
 
     self.camera.x, self.camera.y = self.player.x, self.player.y

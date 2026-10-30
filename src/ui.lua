@@ -59,7 +59,7 @@ end
 -- Pause button
 ----------------------------------------------------------------------
 local function pauseButtonRect()
-    local w = View.size()
+    local w, h = View.size()
     local cfg = Config.pauseButton
     return { x = w - cfg.margin - cfg.size, y = 52, w = cfg.size, h = cfg.size }
 end
@@ -85,7 +85,7 @@ end
 ----------------------------------------------------------------------
 function UI.drawHud(world, showPauseButton)
     local player = world.player
-    local w = View.size()
+    local w, h = View.size()
     beginUI()
 
     -- XP bar across the top
@@ -107,6 +107,19 @@ function UI.drawHud(world, showPauseButton)
     UI.text("LV " .. player.level, 12, 44, 20)
     UI.text(UI.formatTime(world.time), 0, 20, 28, "center", w)
     UI.text("Kills " .. world.kills, w - 162, 22, 20, "right", 150)
+    love.graphics.setColor(0.75, 0.85, 1, 0.85)
+    UI.text("GOAL " .. UI.formatTime(Config.objectiveSeconds), w - 190, 48, 15, "right", 178)
+
+    if world.bossWarning > 0 then
+        love.graphics.setColor(1, 0.22, 0.3, 0.95)
+        UI.text("!! BOSS INCOMING !!", 0, 78, 24, "center", w)
+    end
+
+    love.graphics.setColor(0.75, 0.85, 1, 0.85)
+    local skills = ""
+    if player.stats.pulseCount > 0 then skills = skills .. "  SHOCKWAVE" end
+    if player.stats.lightningCount > 0 then skills = skills .. "  LIGHTNING" end
+    if skills ~= "" then UI.text(skills, 12, h - 30, 16) end
 
     if showPauseButton then drawPauseButton() end
 
@@ -166,6 +179,24 @@ function UI.drawGameOver(world, newRecord, canRestart)
     love.graphics.pop()
 end
 
+function UI.drawVictory(world, newRecord, canRestart)
+    local w, h = View.size()
+    beginUI()
+    dimScreen(0.65)
+    love.graphics.setColor(0.35, 1, 0.65)
+    UI.text("10 MINUTES SURVIVED!", 0, h * 0.25, 48, "center", w)
+    love.graphics.setColor(1, 1, 1)
+    UI.text("You cleared the night.", 0, h * 0.39, 28, "center", w)
+    UI.text("Level " .. world.player.level .. "   Kills " .. world.kills, 0, h * 0.47, 26, "center", w)
+    if newRecord then
+        love.graphics.setColor(1, 0.9, 0.4)
+        UI.text("New best time!", 0, h * 0.54, 28, "center", w)
+    end
+    love.graphics.setColor(1, 1, 1, canRestart and 1 or 0.25)
+    UI.text("Tap / press Enter to play again", 0, h * 0.68, 26, "center", w)
+    love.graphics.pop()
+end
+
 ----------------------------------------------------------------------
 -- Level-up cards
 ----------------------------------------------------------------------
@@ -201,6 +232,16 @@ function UI.cardAt(count, px, py)
     end
 end
 
+function UI.rerollButtonRect()
+    local w, h = View.size()
+    return { x = w / 2 - 105, y = h - 58, w = 210, h = 40 }
+end
+
+function UI.rerollButtonHit(px, py)
+    local x, y = toUnits(px, py)
+    return insideRect(x, y, UI.rerollButtonRect())
+end
+
 function UI.drawLevelUp(choices, player)
     local w, h = View.size()
     beginUI()
@@ -223,6 +264,13 @@ function UI.drawLevelUp(choices, player)
         love.graphics.setColor(0.6, 0.6, 0.75)
         UI.text("[" .. i .. "]", rect.x + rect.w - 40, rect.y + 6, 16, "right", 30)
     end
+    local reroll = UI.rerollButtonRect()
+    love.graphics.setColor(0.12, 0.35, 0.46, 0.96)
+    love.graphics.rectangle("fill", reroll.x, reroll.y, reroll.w, reroll.h, 10, 10)
+    love.graphics.setColor(0.55, 0.9, 1)
+    love.graphics.rectangle("line", reroll.x, reroll.y, reroll.w, reroll.h, 10, 10)
+    love.graphics.setColor(1, 1, 1)
+    UI.text("R  REROLL (" .. player.stats.rerolls .. ")", reroll.x, reroll.y + 9, 18, "center", reroll.w)
     love.graphics.pop()
 end
 

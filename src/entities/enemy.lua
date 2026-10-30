@@ -27,6 +27,7 @@ function Enemy.new(typeName, x, y, hpScale)
     self.lastOrbHit = -999       -- used by the orbit weapon's per-enemy cooldown
     self.facingLeft = false
     self.dead = false
+    self.isBoss = def.boss == true
 
     return self
 end
@@ -43,12 +44,17 @@ function Enemy:update(dt, world)
 
     -- Touching the player hurts (player has brief invulnerability, see player.lua).
     if Util.circlesOverlap(self.x, self.y, self.radius, player.x, player.y, player.radius) then
-        player:takeDamage(self.damage)
+        -- Contact damage ramps with the run, so standing still becomes lethal.
+        local enrage = 1 + math.min(1.25, world.time / 360)
+        player:takeDamage(self.damage * enrage)
     end
 end
 
 function Enemy:takeDamage(amount, world)
     if self.dead then return end
+    if world.player.stats.executioner and self.hp <= self.maxHp * 0.5 then
+        amount = amount * 1.25
+    end
     self.hp = self.hp - amount
     self.flashTimer = 0.08
     
@@ -65,10 +71,17 @@ function Enemy:draw()
     else
         love.graphics.setColor(1, 1, 1)
     end
-    local squash = math.sin(self.age * 9) * 0.07     -- bouncy idle wobble
+    local squash = math.sin(self.age * (self.isBoss and 4 or 9)) * (self.isBoss and 0.03 or 0.07)
     Assets.draw(self.sprite, self.x, self.y, 0, self.facingLeft, squash)
 
-    if self.hp < self.maxHp then
+    if self.isBoss then
+        love.graphics.setColor(1, 0.2, 0.35, 0.95)
+        love.graphics.rectangle("fill", self.x - 90, self.y - self.radius - 24, 180, 9, 3, 3)
+        love.graphics.setColor(1, 0.85, 0.2)
+        love.graphics.rectangle("fill", self.x - 90, self.y - self.radius - 24, 180 * math.max(0, self.hp / self.maxHp), 9, 3, 3)
+        love.graphics.setColor(1, 0.8, 0.25)
+        love.graphics.printf("BOSS", self.x - 90, self.y - self.radius - 46, 180, "center")
+    elseif self.hp < self.maxHp then
         local width, height = math.max(28, self.radius * 2.4), 5
         love.graphics.setColor(0, 0, 0, 0.75)
         love.graphics.rectangle("fill", self.x - width / 2, self.y - self.radius - 12, width, height, 2, 2)

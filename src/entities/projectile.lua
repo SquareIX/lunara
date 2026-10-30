@@ -35,7 +35,7 @@ function Projectile:update(dt, world)
             local critical = love.math.random() < world.player.stats.critChance
             local damage = self.damage * (critical and world.player.stats.critMult or 1)
             enemy:takeDamage(damage, world)
-            world:addFloatingText(enemy.x, enemy.y - enemy.radius - 8, math.floor(damage + 0.5), critical and {1, 0.85, 0.25} or {1, 1, 1}, critical)
+            world:addDamageNumber(enemy, damage, critical and {1, 0.85, 0.25} or {1, 1, 1}, critical)
             self.dead = true
             return
         end
