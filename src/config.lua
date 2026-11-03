@@ -32,6 +32,7 @@ Config.sprites = {
   boss       = { file = "boss.png", size = 150, shadow = 0.9, color = { 0.95, 0.20, 0.35 } },
   bolt       = { file = "bolt.png", size = 34, color = { 0.30, 0.80, 1.00 } },
   rocket     = { file = "rocket.png", size = 42, color = { 1.00, 0.45, 0.18 } },
+  sword      = { file = "sword.png", size = 54, color = { 0.85, 0.88, 0.95 } },
   orb        = { file = "orb.png", size = 40, color = { 1.00, 0.55, 0.75 } },
   gem        = { file = "gem.png", size = 22, color = { 0.25, 0.90, 0.60 } },
   background = { file = "background.png", size = 128, color = { 0.18, 0.30, 0.23 }, shape = "rect" },
@@ -41,6 +42,8 @@ Config.sprites = {
 -- above is used automatically.
 Config.animations = {
   player = { file = "player_sheet.png", frames = 4, fps = 8, size = 56 },
+  player_attack = { file = "player_attack_sheet.png", frames = 4, fps = 12, size = 56 },
+  slash = { file = "slash_sheet.png", frames = 4, fps = 18, size = 200 },
 }
 
 ----------------------------------------------------------------------
@@ -141,6 +144,7 @@ Config.weapons = {
   },
   pulse = { cooldown = 5.5, damage = 22, radius = 170 },
   lightning = { cooldown = 7.0, damage = 55, targetRange = 620, chainRange = 150, chains = 3 },
+  sword = { damage = 45, cooldown = 1.1, range = 95, arc = 2.0, swingTime = 0.18 },
 }
 
 ----------------------------------------------------------------------
