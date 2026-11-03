@@ -35,6 +35,13 @@ Config.sprites = {
   sword      = { file = "sword.png", size = 54, color = { 0.85, 0.88, 0.95 } },
   orb        = { file = "orb.png", size = 40, color = { 1.00, 0.55, 0.75 } },
   gem        = { file = "gem.png", size = 22, color = { 0.25, 0.90, 0.60 } },
+  aiko       = { file = "aiko.png", size = 56, shadow = 0.7, color = { 0.65, 0.80, 1.00 } },
+  momo       = { file = "momo.png", size = 56, shadow = 0.7, color = { 1.00, 0.65, 0.35 } },
+  helmet     = { file = "helmet.png", size = 44, color = { 0.80, 0.82, 0.88 } },
+  chest      = { file = "chest.png", size = 44, color = { 0.85, 0.75, 0.45 } },
+  boots      = { file = "boots.png", size = 44, color = { 0.65, 0.45, 0.30 } },
+  amulet     = { file = "amulet.png", size = 44, color = { 0.40, 0.90, 0.85 } },
+  menu_bg    = { file = "menu_bg.png", size = 800, color = { 0.10, 0.16, 0.20 } },
   background = { file = "background.png", size = 128, color = { 0.18, 0.30, 0.23 }, shape = "rect" },
 }
 
@@ -48,7 +55,47 @@ Config.animations = {
   bat = { file = "bat_sheet.png", frames = 4, fps = 12, size = 44 },
   wraith = { file = "wraith_sheet.png", frames = 4, fps = 6, size = 52 },
   boss = { file = "boss_sheet.png", frames = 4, fps = 6, size = 150 },
+  aiko = { file = "aiko_sheet.png", frames = 4, fps = 8, size = 56 },
+  aiko_attack = { file = "aiko_attack_sheet.png", frames = 4, fps = 12, size = 56 },
+  momo = { file = "momo_sheet.png", frames = 4, fps = 8, size = 56 },
+  momo_attack = { file = "momo_attack_sheet.png", frames = 4, fps = 12, size = 56 },
 }
+
+----------------------------------------------------------------------
+-- PLAYABLE CHARACTERS (chosen on the character select screen)
+-- sprite / walkAnim / attackAnim are keys in Config.sprites / .animations.
+-- startStats are merged into the player's stats at the start of a run.
+----------------------------------------------------------------------
+Config.characters = {
+  {
+    id = "lunara", name = "Lunara", title = "Moonlight Magical Girl",
+    desc = "Balanced all-rounder. Starts with the trusty bolt.",
+    sprite = "player", walkAnim = "player", attackAnim = "player_attack",
+    hpMult = 1.0, speedMult = 1.0, damageMult = 1.0, armorBonus = 0,
+    startStats = {},
+  },
+  {
+    id = "aiko", name = "Aiko", title = "Blade Dancer",
+    desc = "Fast and deadly. Starts with the sword unlocked, but fragile.",
+    sprite = "aiko", walkAnim = "aiko", attackAnim = "aiko_attack",
+    hpMult = 0.8, speedMult = 1.15, damageMult = 1.1, armorBonus = 0,
+    startStats = { swordCount = 1 },
+  },
+  {
+    id = "momo", name = "Momo", title = "Bulwark",
+    desc = "Slow, tough, armoured. Starts with an orbiting orb guard.",
+    sprite = "momo", walkAnim = "momo", attackAnim = "momo_attack",
+    hpMult = 1.8, speedMult = 0.92, damageMult = 1.0, armorBonus = 2,
+    startStats = { orbCount = 1 },
+  },
+}
+
+function Config.characterById(id)
+  for _, char in ipairs(Config.characters) do
+    if char.id == id then return char end
+  end
+  return Config.characters[1]
+end
 
 ----------------------------------------------------------------------
 -- PLAYER
@@ -114,6 +161,15 @@ Config.spawn = {
   hpScalePerMinute        = 5,     -- enemies get +65% HP per minute survived
   bossInterval            = 90,
   bossHpScalePerMinute    = 0.35,
+  eliteChance             = 0.03,  -- normal spawns that become elites (x6 HP, x5 XP)
+}
+
+-- Equipment drop chances (see src/equipment.lua)
+Config.drops = {
+  normalChance = 0.025,
+  eliteChance  = 0.40,
+  bossChance   = 1.0,
+  scrapXp      = 6,     -- a weaker duplicate equips nothing; it becomes this much XP
 }
 
 ----------------------------------------------------------------------
@@ -152,9 +208,9 @@ Config.weapons = {
   pulse = { cooldown = 5.5, damage = 22, radius = 170 },
   lightning = { cooldown = 7.0, damage = 55, targetRange = 620, chainRange = 150, chains = 3 },
   sword = {
-    damage = 45, cooldown = 1.1, range = 95, arc = 2.0, swingTime = 0.18,
+    damage = 45, cooldown = 1.1, range = 135, arc = 2.0, swingTime = 0.18,
     waveDamageMult = 0.6,  -- the ranged slash wave hits for 60% of a swing
-    waveSpeed = 520, waveRange = 340, waveRadius = 26,
+    waveSpeed = 520, waveRange = 430, waveRadius = 26,
   },
 }
 

@@ -12,6 +12,7 @@ local function rand(min, max) return min + love.math.random() * (max - min) end
 --       angle (direction, optional), spread (radians, default full circle),
 --       gravity (default 0), drag (default 2.5)
 function Particles.spawn(list, x, y, opts)
+    if #list > 700 then return end  -- hard cap: juice must never tank the frame rate
     opts = opts or {}
     local colors = opts.colors or { { 1, 1, 1 } }
     local speed = opts.speed or { 40, 160 }

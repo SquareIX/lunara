@@ -19,9 +19,9 @@ local Audio = require("src.audio")
 local World = {}
 World.__index = World
 
-function World.new()
+function World.new(characterId)
     local self = setmetatable({}, World)
-    self.player = Player.new()
+    self.player = Player.new(characterId)
     self.enemies = {}
     self.projectiles = {}
     self.gems = {}
@@ -137,7 +137,20 @@ function World:updateSpawning(dt)
     for _ = 1, batch do
         if #self.enemies >= cfg.maxEnemies then break end
         local x, y = self:randomSpawnPoint()
-        self.enemies[#self.enemies + 1] = Enemy.new(pickEnemyType(self.time), x, y, hpScale)
+        local enemy = Enemy.new(pickEnemyType(self.time), x, y, hpScale)
+        if love.math.random() < cfg.eliteChance then
+            -- Elite: much tougher, worth much more, drops loot often.
+            enemy.isElite = true
+            enemy.maxHp = enemy.maxHp * 6
+            enemy.hp = enemy.maxHp
+            enemy.xp = enemy.xp * 5
+            enemy.radius = enemy.radius * 1.25
+        end
+        Particles.spawn(self.particles, x, y, {
+            count = 6, colors = { { 0.7, 0.5, 1 } },
+            speed = { 20, 70 }, life = { 0.25, 0.5 }, size = { 1.5, 3 },
+        })
+        self.enemies[#self.enemies + 1] = enemy
     end
 end
 
@@ -178,6 +191,12 @@ function World:update(dt)
         Particles.spawn(self.particles, self.player.x, self.player.y, {
             count = 26, colors = { { 1, 0.85, 0.25 }, { 1, 1, 1 } },
             speed = { 80, 220 }, life = { 0.4, 0.8 }, size = { 2, 4 },
+        })
+        -- A beam of light shooting up, Holocure-style.
+        Particles.spawn(self.particles, self.player.x, self.player.y, {
+            count = 22, colors = { { 1, 0.9, 0.4 }, { 0.6, 0.9, 1 } },
+            angle = -math.pi / 2, spread = 0.35,
+            speed = { 260, 420 }, life = { 0.35, 0.7 }, size = { 2, 4 }, drag = 1.2,
         })
         self:addFloatingText(self.player.x, self.player.y - 46, "LEVEL UP!", { 1, 0.85, 0.25 }, true)
     end
@@ -224,7 +243,7 @@ function World:draw()
         love.graphics.setColor(1, 1, 1)
         Assets.drawShadow(enemy.sprite, enemy.x, enemy.y)
     end
-    Assets.drawShadow("player", self.player.x, self.player.y)
+    Assets.drawShadow(self.player.spriteKey, self.player.x, self.player.y)
 
     for _, gem in ipairs(self.gems) do gem:draw() end
     for _, enemy in ipairs(self.enemies) do enemy:draw() end

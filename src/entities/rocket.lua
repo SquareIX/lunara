@@ -29,6 +29,7 @@ function Rocket:update(dt, world)
                     local critical = love.math.random() < world.player.stats.critChance
                     local damage = self.damage * (critical and world.player.stats.critMult or 1)
                     victim:takeDamage(damage, world)
+                    victim:knockback(self.x, self.y, victim.isBoss and 30 or 190)
                     world:addDamageNumber(victim, damage, critical and {1, 0.85, 0.25} or {1, 0.55, 0.25}, critical)
                 end
             end

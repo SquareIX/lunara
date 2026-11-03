@@ -35,7 +35,7 @@ function Audio.load()
         sword = tone(340, 0.12, 0.2, 2.5),
         hit = tone(160, 0.05, 0.14, 0.5), die = tone(95, 0.18, 0.2, 1.2),
         pickup = tone(1250, 0.05, 0.09, 0.3), levelup = tone(880, 0.28, 0.16, 1.0),
-        boom = tone(70, 0.3, 0.3, 1.5),
+        boom = tone(70, 0.3, 0.3, 1.5), loot = tone(1560, 0.14, 0.14, 0.8),
     }
     Audio.music = { normal = theme({220, 277, 330, 277}, 8), boss = theme({110, 123, 146, 98}, 8) }
 end

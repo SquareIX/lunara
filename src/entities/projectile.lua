@@ -38,6 +38,7 @@ function Projectile:update(dt, world)
             local critical = love.math.random() < stats.critChance
             local damage = self.damage * (critical and stats.critMult or 1)
             enemy:takeDamage(damage, world)
+            if enemy.knockback then enemy:knockback(self.x, self.y, enemy.isBoss and 10 or 55) end
             world:addDamageNumber(enemy, damage, critical and {1, 0.85, 0.25} or {1, 1, 1}, critical)
             if stats.boltBurn > 0 then
                 enemy:applyBurn(stats.boltBurn, Config.weapons.bolt.burnDuration)
