@@ -8,13 +8,17 @@ local Input = require("src.input")
 local Player = {}
 Player.__index = Player
 
-function Player.new()
+function Player.new(characterId)
     local cfg = Config.player
+    local char = Config.characterById(characterId)
     local self = setmetatable({}, Player)
 
+    self.charId = char.id
+    self.spriteKey = char.sprite       -- static sprite + shadow
+    self.walkAnim = char.walkAnim      -- animation keys (Sheets may be absent)
+    self.attackAnim = char.attackAnim
     self.x, self.y = 0, 0
     self.radius = cfg.radius
-    self.hp = cfg.maxHp
     self.facingLeft = false
     self.invulnTimer = 0
     self.attackTimer = 0      -- > 0 while a sword swing animation plays
@@ -52,8 +56,49 @@ function Player.new()
         executioner  = false,
     }
     self.upgradeCounts = {}   -- upgrade id -> times taken
+    self.equipment = {}       -- slot -> item (see src/equipment.lua)
+
+    -- Character identity: stat multipliers, bonus armour, starting weapons.
+    self.stats.maxHp = math.max(1, math.floor(self.stats.maxHp * char.hpMult))
+    self.stats.moveSpeed = self.stats.moveSpeed * char.speedMult
+    self.stats.damageMult = self.stats.damageMult * char.damageMult
+    self.stats.armor = self.stats.armor + char.armorBonus
+    for key, value in pairs(char.startStats) do self.stats[key] = value end
+    self.hp = self.stats.maxHp
 
     return self
+end
+
+----------------------------------------------------------------------
+-- Equipment (items found during the run, see src/equipment.lua)
+----------------------------------------------------------------------
+local function applyMods(player, item, direction)
+    for _, mod in ipairs(item.mods) do
+        if mod.kind == "add" then
+            player.stats[mod.stat] = player.stats[mod.stat] + mod.value * direction
+        elseif direction > 0 then
+            player.stats[mod.stat] = player.stats[mod.stat] * mod.value
+        else
+            player.stats[mod.stat] = player.stats[mod.stat] / mod.value
+        end
+    end
+    if player.stats.maxHp < 1 then player.stats.maxHp = 1 end
+    if player.hp > player.stats.maxHp then player.hp = player.stats.maxHp end
+end
+
+-- Equip an item. Returns "equipped" or "scrapped" (a weaker item for an
+-- occupied slot turns into XP instead).
+function Player:equip(item)
+    local current = self.equipment[item.slot]
+    if current and current.power >= item.power then
+        self:addXp(Config.drops.scrapXp)
+        return "scrapped"
+    end
+    if current then applyMods(self, current, -1) end
+    applyMods(self, item, 1)
+    if item.slot == "chest" then self:heal(20) end  -- a little top-up with new armour
+    self.equipment[item.slot] = item
+    return "equipped"
 end
 
 function Player:update(dt, world)
@@ -105,14 +150,16 @@ function Player:draw()
 
     -- Quick bounce while running, slow breathing while standing still.
     local squash = self.moving and math.sin(self.age * 16) * 0.06 or math.sin(self.age * 3) * 0.02
-    if self.attackTimer > 0 and Assets.animations.player_attack then
+    if self.attackTimer > 0 and Assets.animations[self.attackAnim] then
         -- Sword swing in progress: play the attack sheet instead of walking.
         local progress = 1 - self.attackTimer / math.max(self.attackDuration, 0.01)
         local attackFrame = math.min(4, math.floor(progress * 4) + 1)
-        Assets.drawAnimated("player_attack", self.x, self.y, attackFrame, 0, self.facingLeft, squash)
-    else
+        Assets.drawAnimated(self.attackAnim, self.x, self.y, attackFrame, 0, self.facingLeft, squash)
+    elseif Assets.animations[self.walkAnim] then
         local frame = self.moving and (math.floor(self.age * 8) % 4) + 1 or (math.floor(self.age * 2) % 2) + 1
-        Assets.drawAnimated("player", self.x, self.y, frame, 0, self.facingLeft, squash)
+        Assets.drawAnimated(self.walkAnim, self.x, self.y, frame, 0, self.facingLeft, squash)
+    else
+        Assets.draw(self.spriteKey, self.x, self.y, 0, self.facingLeft, squash)
     end
 
     if Config.debug then

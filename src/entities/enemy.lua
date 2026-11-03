@@ -7,6 +7,7 @@ local Assets = require("src.assets")
 local Util = require("src.util")
 local Particles = require("src.particles")
 local Audio = require("src.audio")
+local Equipment = require("src.equipment")
 
 local Enemy = {}
 Enemy.__index = Enemy
@@ -30,6 +31,9 @@ function Enemy.new(typeName, x, y, hpScale)
     self.burnTimer = 0           -- ember passive: seconds of burn remaining
     self.burnDps = 0             -- ember passive: burn damage per second
     self.burnTickAcc = 0
+    self.kbx, self.kby = 0, 0    -- knockback velocity (decays fast)
+    self.spawnAge = 0            -- spawn-in animation timer
+    self.isElite = false
     self.facingLeft = false
     self.dead = false
     self.isBoss = def.boss == true
@@ -37,11 +41,21 @@ function Enemy.new(typeName, x, y, hpScale)
     return self
 end
 
+-- Shove the enemy away from (fromX, fromY). Called by weapons on hit.
+function Enemy:knockback(fromX, fromY, force)
+    local dx, dy = Util.normalize(self.x - fromX, self.y - fromY)
+    self.kbx = self.kbx + dx * force
+    self.kby = self.kby + dy * force
+end
+
 function Enemy:update(dt, world)
     local player = world.player
+    self.spawnAge = self.spawnAge + dt
     local dx, dy = Util.normalize(player.x - self.x, player.y - self.y)
-    self.x = self.x + dx * self.speed * dt
-    self.y = self.y + dy * self.speed * dt
+    self.x = self.x + dx * self.speed * dt + self.kbx * dt
+    self.y = self.y + dy * self.speed * dt + self.kby * dt
+    local kbDecay = math.max(0, 1 - 9 * dt)
+    self.kbx, self.kby = self.kbx * kbDecay, self.kby * kbDecay
     if dx ~= 0 then self.facingLeft = dx < 0 end
 
     self.age = self.age + dt
@@ -90,6 +104,12 @@ end
 
 function Enemy:takeDamage(amount, world)
     if self.dead then return end
+    if world and world.particles then
+        Particles.spawn(world.particles, self.x, self.y, {
+            count = 2, colors = { { 1, 1, 1 } },
+            speed = { 40, 120 }, life = { 0.12, 0.25 }, size = { 1.2, 2.2 },
+        })
+    end
     if world.player.stats.executioner and self.hp <= self.maxHp * 0.5 then
         amount = amount * 1.25
     end
@@ -100,6 +120,23 @@ function Enemy:takeDamage(amount, world)
         self.dead = true
         world.kills = world.kills + 1
         world:spawnGem(self.x, self.y, self.xp)
+        -- Equipment drops: bosses always, elites often, normals rarely.
+        local dropChance = self.isBoss and Config.drops.bossChance
+            or (self.isElite and Config.drops.eliteChance or Config.drops.normalChance)
+        if love.math.random() < dropChance then
+            local item = Equipment.rollDrop(self.isBoss and "boss" or nil)
+            local result = world.player:equip(item)
+            if result == "equipped" then
+                world:addFloatingText(self.x, self.y - 34, item.name, item.color, true)
+                Audio.play("loot")
+            else
+                world:addFloatingText(self.x, self.y - 34, item.name .. " scrapped (+" .. Config.drops.scrapXp .. " XP)", { 0.8, 0.85, 0.9 }, false)
+            end
+            Particles.spawn(world.particles, self.x, self.y, {
+                count = 10, colors = { item.color },
+                speed = { 40, 130 }, life = { 0.3, 0.6 }, size = { 2, 3.5 },
+            })
+        end
         -- Death juice: a burst in the enemy's own colours + a sound.
         local color = (Config.sprites[self.sprite] or {}).color or { 1, 1, 1 }
         Particles.burst(world.particles, self.x, self.y, color, self.isBoss and 42 or 14)
@@ -112,12 +149,15 @@ function Enemy:takeDamage(amount, world)
 end
 
 function Enemy:draw()
+    local alpha = math.min(1, self.spawnAge / 0.35)  -- fade in on spawn
     if self.flashTimer > 0 then
-        love.graphics.setColor(1, 0.6, 0.6)
+        love.graphics.setColor(1, 0.6, 0.6, alpha)
     elseif self.burnTimer > 0 then
-        love.graphics.setColor(1, 0.72, 0.45)   -- burning tint
+        love.graphics.setColor(1, 0.72, 0.45, alpha)   -- burning tint
+    elseif self.isElite then
+        love.graphics.setColor(1, 0.95, 0.6, alpha)    -- elite golden tint
     else
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setColor(1, 1, 1, alpha)
     end
     local squash = math.sin(self.age * (self.isBoss and 4 or 9)) * (self.isBoss and 0.03 or 0.07)
     if Assets.animations[self.sprite] then

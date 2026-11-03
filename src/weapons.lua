@@ -251,6 +251,7 @@ function sword.update(world, dt)
                 local critical = love.math.random() < player.stats.critChance
                 local hitDamage = damage * (critical and player.stats.critMult or 1)
                 enemy:takeDamage(hitDamage, world)
+                enemy:knockback(player.x, player.y, enemy.isBoss and 40 or 240)
                 world:addDamageNumber(enemy, hitDamage, critical and {1, 0.85, 0.25} or {0.8, 0.92, 1}, critical)
             end
         end

@@ -16,6 +16,8 @@ love .            # from this folder (install LÖVE 11.4+ from love2d.org)
 | Drag on screen (touch / mouse) | floating virtual joystick |
 | WASD / arrows | move |
 | Esc or pause button | pause |
+| I / Tab or bag button | inventory (equipment) |
+| C (on title) | character select |
 | 1 / 2 / 3 or tap a card | choose upgrade |
 | F1 | debug overlay (hitboxes, FPS, counts) |
 | F5 | reload sprites from disk without restarting |
@@ -54,12 +56,23 @@ so you never need to match the old resolution. Change `size` if your art should
 appear bigger or smaller. For pixel art set `Config.spriteFilter = "nearest"`.
 If a PNG is missing the game draws a coloured circle instead, so nothing crashes.
 
-Sprites used: `player, slime, bat, golem, wraith, charger, boss, bolt, rocket, orb, gem, sword, background`
+Sprites used: `player, aiko, momo, slime, bat, golem, wraith, charger, boss, bolt, rocket, orb, gem, sword, helmet, chest, boots, amulet, menu_bg, background`
 (`background` is a tile that repeats forever; make it tileable).
 Animation sheets: `player_sheet` (walk cycle), `player_attack_sheet` (sword swing)
 and `slash_sheet` (the sword's slash effect), plus walk/flap/float cycles for
-the enemies: `slime_sheet`, `bat_sheet`, `wraith_sheet`, `boss_sheet`. Any
-enemy without a sheet simply uses its static sprite as before.
+the enemies: `slime_sheet`, `bat_sheet`, `wraith_sheet`, `boss_sheet`, and walk
++ attack sheets for the other characters: `aiko_sheet`, `aiko_attack_sheet`,
+`momo_sheet`, `momo_attack_sheet`. Any character or enemy without a sheet
+simply uses its static sprite as before.
+
+## Menus, characters and equipment
+
+The title screen is a main menu (Start / Characters / How to Play) over
+`menu_bg` art. Three survivors are playable (Lunara, Aiko the Blade Dancer,
+Momo the Bulwark), picked on the character screen; the choice is remembered.
+Enemies drop equipment for four slots (helmet, chest, boots, amulet) in three
+rarities; drops auto-equip when stronger and scrap into XP when weaker.
+Golden elite enemies (3% of spawns) are much tougher and drop loot often.
 
 To regenerate the placeholders: `pip install pillow && python3 tools/generate_placeholder_sprites.py`
 

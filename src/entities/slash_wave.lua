@@ -40,6 +40,7 @@ function SlashWave:update(dt, world)
             local critical = love.math.random() < world.player.stats.critChance
             local damage = self.damage * (critical and world.player.stats.critMult or 1)
             enemy:takeDamage(damage, world)
+            enemy:knockback(self.x - self.vx * 0.05, self.y - self.vy * 0.05, enemy.isBoss and 25 or 150)
             world:addDamageNumber(enemy, damage, critical and { 1, 0.85, 0.25 } or { 0.65, 0.95, 1 }, critical)
             Particles.spawn(world.particles, enemy.x, enemy.y, {
                 count = 4, colors = { { 0.65, 0.95, 1 } },

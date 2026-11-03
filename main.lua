@@ -14,7 +14,8 @@ local Upgrades = require("src.upgrades")
 local Save = require("src.save")
 local Audio = require("src.audio")
 
-local state = "title"     -- "title" | "playing" | "levelup" | "paused" | "gameover" | "victory"
+local state = "title"     -- "title" | "characters" | "howto" | "playing" | "levelup" | "paused" | "inventory" | "gameover" | "victory"
+local inventoryReturn = "playing"  -- state to go back to when inventory closes
 local stateTime = 0       -- seconds spent in the current state
 local world = nil
 local upgradeChoices = {} -- cards shown in the "levelup" state
@@ -30,7 +31,7 @@ local function setState(name)
 end
 
 local function startRun()
-  world = World.new()
+  world = World.new(Save.character)
   newRecord = false
   setState("playing")
   Audio.setMusic("normal")
@@ -111,9 +112,22 @@ function love.update(dt)
   end
 end
 
+local function openInventory(fromState)
+  inventoryReturn = fromState
+  setState("inventory")
+end
+
 function love.draw()
   if state == "title" then
     UI.drawTitle()
+    return
+  end
+  if state == "characters" then
+    UI.drawCharacters(Save.character)
+    return
+  end
+  if state == "howto" then
+    UI.drawHowTo()
     return
   end
 
@@ -122,6 +136,7 @@ function love.draw()
 
   if state == "playing" then Input.draw() end
   if state == "levelup" then UI.drawLevelUp(upgradeChoices, world.player) end
+  if state == "inventory" then UI.drawInventory(world.player) end
   if state == "paused" then UI.drawPaused() end
   if state == "gameover" then UI.drawGameOver(world, newRecord, canRestart()) end
   if state == "victory" then UI.drawVictory(world, newRecord, canRestart()) end
@@ -137,6 +152,20 @@ function love.keypressed(key)
 
   if state == "title" then
     if key == "return" or key == "space" then startRun() end
+    if key == "c" then setState("characters") end
+  elseif state == "characters" then
+    local index = tonumber(key)
+    if index and Config.characters[index] then Save.setCharacter(Config.characters[index].id) end
+    if key == "escape" or key == "return" then setState("title") end
+  elseif state == "howto" then
+    if key == "escape" or key == "return" or key == "space" then setState("title") end
+  elseif state == "inventory" then
+    if key == "escape" or key == "i" or key == "tab" then setState(inventoryReturn) end
+    return  -- never fall through to the pause toggle below
+  elseif state == "playing" then
+    if key == "i" or key == "tab" then openInventory("playing") end
+  elseif state == "paused" then
+    if key == "i" then openInventory("paused") end
   elseif state == "gameover" or state == "victory" then
     if (key == "return" or key == "space") and canRestart() then startRun() end
   elseif state == "levelup" then
@@ -153,7 +182,21 @@ end
 ----------------------------------------------------------------------
 local function pointerPressed(id, x, y)
   if state == "title" then
-    startRun()
+    local button = UI.menuButtonAt(x, y)
+    if button == "start" then startRun()
+    elseif button == "characters" then setState("characters")
+    elseif button == "howto" then setState("howto") end
+  elseif state == "characters" then
+    local index = UI.characterCardAt(x, y)
+    if index then
+      Save.setCharacter(Config.characters[index].id)
+    elseif UI.backButtonHit(x, y) then
+      setState("title")
+    end
+  elseif state == "howto" then
+    setState("title")
+  elseif state == "inventory" then
+    if UI.backButtonHit(x, y) then setState(inventoryReturn) end
   elseif state == "gameover" or state == "victory" then
     if canRestart() then startRun() end
   elseif state == "paused" then
@@ -168,6 +211,8 @@ local function pointerPressed(id, x, y)
   elseif state == "playing" then
     if UI.pauseButtonHit(x, y) then
       togglePause()
+    elseif UI.inventoryButtonHit(x, y) then
+      openInventory("playing")
     else
       Input.pressed(id, x, y)
     end

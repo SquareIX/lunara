@@ -28,6 +28,13 @@ function Gem:update(dt, world)
         self.y = self.y + dy * FLY_SPEED * dt
     end
 
+    if love.math.random() < dt * 1.5 then
+        Particles.spawn(world.particles, self.x, self.y, {
+            count = 1, colors = { { 0.5, 1, 0.75 } },
+            speed = { 5, 25 }, life = { 0.3, 0.6 }, size = { 1, 2 },
+        })
+    end
+
     if dist <= COLLECT_DISTANCE then
         player:addXp(self.value)
         Particles.spawn(world.particles, self.x, self.y, {
