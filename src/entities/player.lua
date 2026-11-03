@@ -41,6 +41,9 @@ function Player.new()
         pulseCount   = 0,
         lightningCount = 0,
         swordCount   = 0,     -- sword swings (0 = weapon not unlocked yet)
+        swordDamageMult = 1.0, -- sword-only damage multiplier (Sharpened Edge)
+        boltChain    = 0,     -- ricochet passive: extra enemies a bolt bounces to
+        boltBurn     = 0,     -- ember passive: burn damage per second from bolts
         critChance   = 0,
         critMult     = 2.0,
         regen        = cfg.regen,
@@ -68,10 +71,13 @@ function Player:update(dt, world)
     end
 end
 
+-- Returns true when the hit actually landed (false while invulnerable),
+-- so callers can trigger shake / particles / hitstop only on real hits.
 function Player:takeDamage(amount)
-    if self.invulnTimer > 0 then return end
+    if self.invulnTimer > 0 then return false end
     self.hp = self.hp - math.max(1, amount - self.stats.armor)
     self.invulnTimer = Config.player.invulnTime
+    return true
 end
 
 function Player:heal(amount)

@@ -12,6 +12,8 @@ local Assets = require("src.assets")
 local Util = require("src.util")
 local Projectile = require("src.entities.projectile")
 local Rocket = require("src.entities.rocket")
+local SlashWave = require("src.entities.slash_wave")
+local Particles = require("src.particles")
 local Audio = require("src.audio")
 
 local Weapons = {}
@@ -233,7 +235,13 @@ function sword.update(world, dt)
     player.attackDuration = cfg.swingTime
     Audio.play("sword")
 
-    local damage = cfg.damage * player.stats.damageMult
+    local damage = cfg.damage * player.stats.damageMult * player.stats.swordDamageMult
+    -- Every swing also launches a ranged slash wave in the swing direction.
+    world:addProjectile(SlashWave.new(player.x, player.y, sword.swingAngle, damage * cfg.waveDamageMult))
+    Particles.spawn(world.particles, player.x + math.cos(sword.swingAngle) * 40, player.y + math.sin(sword.swingAngle) * 40, {
+        count = 5, colors = { { 0.75, 0.92, 1 } }, angle = sword.swingAngle, spread = cfg.arc,
+        speed = { 60, 170 }, life = { 0.2, 0.4 }, size = { 1.5, 3 },
+    })
     for _, enemy in ipairs(world.enemies) do
         if not enemy.dead then
             local d = Util.distance(player.x, player.y, enemy.x, enemy.y)

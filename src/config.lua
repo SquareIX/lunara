@@ -44,6 +44,10 @@ Config.animations = {
   player = { file = "player_sheet.png", frames = 4, fps = 8, size = 56 },
   player_attack = { file = "player_attack_sheet.png", frames = 4, fps = 12, size = 56 },
   slash = { file = "slash_sheet.png", frames = 4, fps = 18, size = 200 },
+  slime = { file = "slime_sheet.png", frames = 4, fps = 8, size = 44 },
+  bat = { file = "bat_sheet.png", frames = 4, fps = 12, size = 44 },
+  wraith = { file = "wraith_sheet.png", frames = 4, fps = 6, size = 52 },
+  boss = { file = "boss_sheet.png", frames = 4, fps = 6, size = 150 },
 }
 
 ----------------------------------------------------------------------
@@ -125,6 +129,9 @@ Config.weapons = {
     radius      = 8,
     targetRange = 550,  -- only fires at enemies this close
     spread      = 0.07, -- radians between bolts when firing several
+    chainRange  = 170,  -- ricochet passive: how far a bolt bounce can reach
+    burnDuration = 3,   -- ember passive: seconds a burn lasts
+    burnTick    = 0.5,   -- ember passive: damage tick interval
   },
   rocket = {            -- auto-aimed explosive projectile
     damage          = 20,
@@ -144,7 +151,11 @@ Config.weapons = {
   },
   pulse = { cooldown = 5.5, damage = 22, radius = 170 },
   lightning = { cooldown = 7.0, damage = 55, targetRange = 620, chainRange = 150, chains = 3 },
-  sword = { damage = 45, cooldown = 1.1, range = 95, arc = 2.0, swingTime = 0.18 },
+  sword = {
+    damage = 45, cooldown = 1.1, range = 95, arc = 2.0, swingTime = 0.18,
+    waveDamageMult = 0.6,  -- the ranged slash wave hits for 60% of a swing
+    waveSpeed = 520, waveRange = 340, waveRadius = 26,
+  },
 }
 
 ----------------------------------------------------------------------

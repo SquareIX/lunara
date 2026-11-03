@@ -132,6 +132,27 @@ Upgrades.list = {
     apply = function(p) p.stats.swordCount = p.stats.swordCount + 1 end,
   },
   {
+    id = "bolt_chain",
+    name = "Ricochet Bolts",
+    desc = "Your main bolts bounce to up to 3 close enemies ⚡",
+    max = 1,
+    apply = function(p) p.stats.boltChain = 3 end,
+  },
+  {
+    id = "bolt_burn",
+    name = "Ember Bolts",
+    desc = "Your bolts set enemies on fire: +12 burn damage/s 🔥",
+    max = 3,
+    apply = function(p) p.stats.boltBurn = p.stats.boltBurn + 12 end,
+  },
+  {
+    id = "sword_damage",
+    name = "Sharpened Edge",
+    desc = "+35% sword damage, waves included 🗡️",
+    max = 4,
+    apply = function(p) p.stats.swordDamageMult = p.stats.swordDamageMult * 1.35 end,
+  },
+  {
     id = "overcharge",
     name = "Overcharge",
     desc = "+35% damage, but skills fire 8% slower. it's your choices",

@@ -13,6 +13,8 @@ local Enemy = require("src.entities.enemy")
 local Gem = require("src.entities.gem")
 local Weapons = require("src.weapons")
 local FloatingText = require("src.entities.floating_text")
+local Particles = require("src.particles")
+local Audio = require("src.audio")
 
 local World = {}
 World.__index = World
@@ -24,7 +26,11 @@ function World.new()
     self.projectiles = {}
     self.gems = {}
     self.floatingTexts = {}
+    self.particles = {}
     self.damageBuckets = {}
+    self.shake = 0          -- screen shake magnitude in world units (decays)
+    self.hitstop = 0        -- brief freeze frames on big hits, seconds
+    self.lastLevel = 1      -- for level-up celebration effects
     self.time = 0            -- seconds survived
     self.kills = 0
     self.spawnTimer = 0.5
@@ -38,6 +44,11 @@ end
 ----------------------------------------------------------------------
 -- Adding things (used by weapons and enemies)
 ----------------------------------------------------------------------
+-- Screen shake: bigger events ask for more, capped so it stays readable.
+function World:addShake(amount)
+    self.shake = math.min(16, self.shake + amount)
+end
+
 function World:addProjectile(projectile)
     self.projectiles[#self.projectiles + 1] = projectile
 end
@@ -141,7 +152,13 @@ local function updateAll(list, dt, world)
 end
 
 function World:update(dt)
+    -- Hitstop: freeze the world for a few frames on big hits.
+    if self.hitstop > 0 then
+        self.hitstop = self.hitstop - dt
+        return
+    end
     self.time = self.time + dt
+    self.shake = math.max(0, self.shake - dt * 30)
 
     self.player:update(dt, self)
     Weapons.update(self, dt)
@@ -152,6 +169,18 @@ function World:update(dt)
     updateAll(self.gems, dt, self)
     self:updateDamageNumbers(dt)
     updateAll(self.floatingTexts, dt, self)
+    Particles.update(self.particles, dt)
+
+    -- Level-up celebration: sound, gold burst and a floating banner.
+    if self.player.level > self.lastLevel then
+        self.lastLevel = self.player.level
+        Audio.play("levelup")
+        Particles.spawn(self.particles, self.player.x, self.player.y, {
+            count = 26, colors = { { 1, 0.85, 0.25 }, { 1, 1, 1 } },
+            speed = { 80, 220 }, life = { 0.4, 0.8 }, size = { 2, 4 },
+        })
+        self:addFloatingText(self.player.x, self.player.y - 46, "LEVEL UP!", { 1, 0.85, 0.25 }, true)
+    end
 
     self.camera.x, self.camera.y = self.player.x, self.player.y
 end
@@ -183,6 +212,10 @@ function World:draw()
     local camX = math.floor(self.camera.x * scale) / scale
     local camY = math.floor(self.camera.y * scale) / scale
     love.graphics.translate(viewW / 2 - camX, viewH / 2 - camY)
+    if self.shake > 0.2 then
+        love.graphics.translate((love.math.random() * 2 - 1) * self.shake,
+                                (love.math.random() * 2 - 1) * self.shake)
+    end
 
     drawBackground(self.camera)
 
@@ -198,6 +231,7 @@ function World:draw()
     self.player:draw()
     Weapons.draw(self)
     for _, projectile in ipairs(self.projectiles) do projectile:draw() end
+    Particles.draw(self.particles)
     for _, text in ipairs(self.floatingTexts) do text:draw() end
 
     love.graphics.pop()

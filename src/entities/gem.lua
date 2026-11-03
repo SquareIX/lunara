@@ -3,6 +3,8 @@
 
 local Assets = require("src.assets")
 local Util = require("src.util")
+local Particles = require("src.particles")
+local Audio = require("src.audio")
 
 local Gem = {}
 Gem.__index = Gem
@@ -28,6 +30,11 @@ function Gem:update(dt, world)
 
     if dist <= COLLECT_DISTANCE then
         player:addXp(self.value)
+        Particles.spawn(world.particles, self.x, self.y, {
+            count = 4, colors = { { 0.35, 1, 0.65 } },
+            speed = { 25, 80 }, life = { 0.2, 0.4 }, size = { 1.5, 2.5 },
+        })
+        Audio.play("pickup")
         self.dead = true
     end
 end
