@@ -4,6 +4,8 @@
 local Config = require("src.config")
 local Assets = require("src.assets")
 local Util = require("src.util")
+local Particles = require("src.particles")
+local Audio = require("src.audio")
 
 local Projectile = {}
 Projectile.__index = Projectile
@@ -32,10 +34,45 @@ function Projectile:update(dt, world)
 
     for _, enemy in ipairs(world.enemies) do
         if not enemy.dead and Util.circlesOverlap(self.x, self.y, self.radius, enemy.x, enemy.y, enemy.radius) then
-            local critical = love.math.random() < world.player.stats.critChance
-            local damage = self.damage * (critical and world.player.stats.critMult or 1)
+            local stats = world.player.stats
+            local critical = love.math.random() < stats.critChance
+            local damage = self.damage * (critical and stats.critMult or 1)
             enemy:takeDamage(damage, world)
             world:addDamageNumber(enemy, damage, critical and {1, 0.85, 0.25} or {1, 1, 1}, critical)
+            if stats.boltBurn > 0 then
+                enemy:applyBurn(stats.boltBurn, Config.weapons.bolt.burnDuration)
+            end
+            -- Ricochet passive: bounce to the nearest other enemies, one by one.
+            if stats.boltChain > 0 then
+                local alreadyHit = { [enemy] = true }
+                local fromX, fromY = enemy.x, enemy.y
+                local bounced = false
+                for _ = 1, stats.boltChain do
+                    local target, bestDist = nil, Config.weapons.bolt.chainRange
+                    for _, other in ipairs(world.enemies) do
+                        if not other.dead and not alreadyHit[other] then
+                            local d = Util.distance(fromX, fromY, other.x, other.y)
+                            if d < bestDist then target, bestDist = other, d end
+                        end
+                    end
+                    if not target then break end
+                    bounced = true
+                    alreadyHit[target] = true
+                    local cCrit = love.math.random() < stats.critChance
+                    local cDamage = self.damage * (cCrit and stats.critMult or 1)
+                    target:takeDamage(cDamage, world)
+                    world:addDamageNumber(target, cDamage, cCrit and {1, 0.85, 0.25} or {0.85, 0.65, 1}, cCrit)
+                    if stats.boltBurn > 0 then
+                        target:applyBurn(stats.boltBurn, Config.weapons.bolt.burnDuration)
+                    end
+                    Particles.spawn(world.particles, target.x, target.y, {
+                        count = 3, colors = { { 0.85, 0.65, 1 } },
+                        speed = { 30, 100 }, life = { 0.2, 0.4 }, size = { 1.5, 3 },
+                    })
+                    fromX, fromY = target.x, target.y
+                end
+                if bounced then Audio.play("lightning") end
+            end
             self.dead = true
             return
         end

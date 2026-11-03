@@ -1,6 +1,8 @@
 local Config = require("src.config")
 local Assets = require("src.assets")
 local Util = require("src.util")
+local Particles = require("src.particles")
+local Audio = require("src.audio")
 
 local Rocket = {}
 Rocket.__index = Rocket
@@ -30,6 +32,9 @@ function Rocket:update(dt, world)
                     world:addDamageNumber(victim, damage, critical and {1, 0.85, 0.25} or {1, 0.55, 0.25}, critical)
                 end
             end
+            Particles.burst(world.particles, self.x, self.y, { 1, 0.55, 0.25 }, 22)
+            world:addShake(4)
+            Audio.play("boom")
             self.dead = true
             return
         end

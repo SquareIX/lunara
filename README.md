@@ -57,7 +57,9 @@ If a PNG is missing the game draws a coloured circle instead, so nothing crashes
 Sprites used: `player, slime, bat, golem, wraith, charger, boss, bolt, rocket, orb, gem, sword, background`
 (`background` is a tile that repeats forever; make it tileable).
 Animation sheets: `player_sheet` (walk cycle), `player_attack_sheet` (sword swing)
-and `slash_sheet` (the sword's slash effect).
+and `slash_sheet` (the sword's slash effect), plus walk/flap/float cycles for
+the enemies: `slime_sheet`, `bat_sheet`, `wraith_sheet`, `boss_sheet`. Any
+enemy without a sheet simply uses its static sprite as before.
 
 To regenerate the placeholders: `pip install pillow && python3 tools/generate_placeholder_sprites.py`
 
