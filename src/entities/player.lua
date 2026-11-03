@@ -95,7 +95,8 @@ function Player:draw()
 
     -- Quick bounce while running, slow breathing while standing still.
     local squash = self.moving and math.sin(self.age * 16) * 0.06 or math.sin(self.age * 3) * 0.02
-    Assets.draw("player", self.x, self.y, 0, self.facingLeft, squash)
+    local frame = self.moving and (math.floor(self.age * 8) % 4) + 1 or (math.floor(self.age * 2) % 2) + 1
+    Assets.drawAnimated("player", self.x, self.y, frame, 0, self.facingLeft, squash)
 
     if Config.debug then
         love.graphics.setColor(0, 1, 0, 0.8)

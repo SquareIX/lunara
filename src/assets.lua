@@ -8,7 +8,7 @@
 
 local Config = require("src.config")
 
-local Assets = { images = {} }
+local Assets = { images = {}, animations = {} }
 
 local SPRITE_FOLDER = "assets/sprites/"
 
@@ -32,6 +32,7 @@ end
 
 -- Safe to call again at runtime (F5 in main.lua) to hot-reload your art.
 function Assets.load()
+    Assets.animations = {}
     for name, def in pairs(Config.sprites) do
         local path = SPRITE_FOLDER .. def.file
         if love.filesystem.getInfo(path) then
@@ -41,6 +42,22 @@ function Assets.load()
         else
             print("[assets] missing " .. path .. " -> using fallback shape")
             Assets.images[name] = makeFallback(def)
+        end
+    end
+    for name, def in pairs(Config.animations or {}) do
+        local path = SPRITE_FOLDER .. def.file
+        if love.filesystem.getInfo(path) then
+            local image = love.graphics.newImage(path)
+            image:setFilter(Config.spriteFilter, Config.spriteFilter)
+            local frameWidth = def.frameWidth or (image:getWidth() / def.frames)
+            local frameHeight = def.frameHeight or image:getHeight()
+            local quads = {}
+            for i = 0, def.frames - 1 do
+                quads[i + 1] = love.graphics.newQuad(i * frameWidth, 0, frameWidth, frameHeight, image:getDimensions())
+            end
+            Assets.animations[name] = { image = image, quads = quads, def = def, frameWidth = frameWidth, frameHeight = frameHeight }
+        else
+            print("[assets] missing animation " .. path .. " -> using static sprite")
         end
     end
 end
@@ -58,6 +75,22 @@ end
 
 function Assets.draw(name, x, y, rotation, flipX, squash)
     drawScaled(name, x, y, rotation, flipX, squash)
+end
+
+function Assets.drawAnimated(name, x, y, frame, rotation, flipX, squash)
+    local animation = Assets.animations[name]
+    if not animation then
+        Assets.draw(name, x, y, rotation, flipX, squash)
+        return
+    end
+    local def, image = animation.def, animation.image
+    local frameWidth, frameHeight = animation.frameWidth, animation.frameHeight
+    local quad = animation.quads[((math.floor(frame or 1) - 1) % def.frames) + 1]
+    local scale = def.size / math.max(frameWidth, frameHeight)
+    squash = squash or 0
+    local sx = scale * (1 + squash) * (flipX and -1 or 1)
+    local sy = scale * (1 - squash)
+    love.graphics.draw(image, quad, x, y, rotation or 0, sx, sy, frameWidth / 2, frameHeight / 2)
 end
 
 -- Background tiles are drawn 2 units larger so no thin seams show between them.

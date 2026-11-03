@@ -180,6 +180,21 @@ def make_player():
     s.finish("player.png")
 
 
+def make_player_sheet():
+    """Four-frame placeholder sheet made from the generated player art."""
+    source = Image.open(os.path.join(OUT_DIR, "player.png")).convert("RGBA")
+    sheet = Image.new("RGBA", (source.width * 4, source.height), (0, 0, 0, 0))
+    for index in range(4):
+        frame = source.copy()
+        # Tiny pose offsets make the placeholder visibly animate until real art replaces it.
+        frame = ImageChops.offset(frame, 0, -index * 2)
+        if index * 2:
+            frame.paste((0, 0, 0, 0), (0, source.height - index * 2, source.width, source.height))
+        sheet.alpha_composite(frame, (index * source.width, 0))
+    sheet.save(os.path.join(OUT_DIR, "player_sheet.png"))
+    print("wrote player_sheet.png")
+
+
 def make_slime():
     """Kawaii mint slime with a leaf on its head."""
     s = Sprite()
@@ -325,6 +340,7 @@ def make_background():
 if __name__ == "__main__":
     os.makedirs(OUT_DIR, exist_ok=True)
     make_player()
+    make_player_sheet()
     make_slime()
     make_bat()
     make_golem()
