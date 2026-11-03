@@ -125,6 +125,13 @@ Upgrades.list = {
     end
   },
   {
+    id = "sword",
+    name = "Moonlight Sword",
+    desc = "Unlock the sword: auto-slashes the nearest enemy in an arc 🗡️",
+    max = 1,
+    apply = function(p) p.stats.swordCount = p.stats.swordCount + 1 end,
+  },
+  {
     id = "overcharge",
     name = "Overcharge",
     desc = "+35% damage, but skills fire 8% slower. it's your choices",

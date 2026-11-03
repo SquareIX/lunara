@@ -32,6 +32,7 @@ function Audio.load()
         bolt = tone(720, 0.07, 0.18, 0.2), rocket = tone(120, 0.22, 0.25, 1.5),
         orbit = tone(980, 0.045, 0.12, 0.4), pulse = tone(180, 0.24, 0.28, 2.0),
         lightning = tone(1500, 0.16, 0.22, 3.0),
+        sword = tone(340, 0.12, 0.2, 2.5),
     }
     Audio.music = { normal = theme({220, 277, 330, 277}, 8), boss = theme({110, 123, 146, 98}, 8) }
 end

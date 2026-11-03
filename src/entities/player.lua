@@ -17,6 +17,8 @@ function Player.new()
     self.hp = cfg.maxHp
     self.facingLeft = false
     self.invulnTimer = 0
+    self.attackTimer = 0      -- > 0 while a sword swing animation plays
+    self.attackDuration = 0
     self.age = 0
     self.moving = false
 
@@ -38,6 +40,7 @@ function Player.new()
         rocketCount  = 0,
         pulseCount   = 0,
         lightningCount = 0,
+        swordCount   = 0,     -- sword swings (0 = weapon not unlocked yet)
         critChance   = 0,
         critMult     = 2.0,
         regen        = cfg.regen,
@@ -59,6 +62,7 @@ function Player:update(dt, world)
 
     self.age = self.age + dt
     self.invulnTimer = math.max(0, self.invulnTimer - dt)
+    self.attackTimer = math.max(0, self.attackTimer - dt)
     if self.stats.regen > 0 and self.hp > 0 then
         self.hp = math.min(self.stats.maxHp, self.hp + self.stats.regen * dt)
     end
@@ -95,8 +99,15 @@ function Player:draw()
 
     -- Quick bounce while running, slow breathing while standing still.
     local squash = self.moving and math.sin(self.age * 16) * 0.06 or math.sin(self.age * 3) * 0.02
-    local frame = self.moving and (math.floor(self.age * 8) % 4) + 1 or (math.floor(self.age * 2) % 2) + 1
-    Assets.drawAnimated("player", self.x, self.y, frame, 0, self.facingLeft, squash)
+    if self.attackTimer > 0 and Assets.animations.player_attack then
+        -- Sword swing in progress: play the attack sheet instead of walking.
+        local progress = 1 - self.attackTimer / math.max(self.attackDuration, 0.01)
+        local attackFrame = math.min(4, math.floor(progress * 4) + 1)
+        Assets.drawAnimated("player_attack", self.x, self.y, attackFrame, 0, self.facingLeft, squash)
+    else
+        local frame = self.moving and (math.floor(self.age * 8) % 4) + 1 or (math.floor(self.age * 2) % 2) + 1
+        Assets.drawAnimated("player", self.x, self.y, frame, 0, self.facingLeft, squash)
+    end
 
     if Config.debug then
         love.graphics.setColor(0, 1, 0, 0.8)

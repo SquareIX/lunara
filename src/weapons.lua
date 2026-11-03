@@ -199,9 +199,90 @@ function lightning.draw(world)
 end
 
 ----------------------------------------------------------------------
+-- SWORD: melee swing that hits every enemy in an arc toward the nearest foe
+----------------------------------------------------------------------
+local sword = { timer = 0, swingTimer = 0, swingAngle = 0, swingDir = 1 }
+
+function sword.reset()
+    sword.timer, sword.swingTimer, sword.swingAngle, sword.swingDir = 0, 0, 0, 1
+end
+
+local function angleDifference(a, b)
+    local d = (a - b) % (math.pi * 2)
+    if d > math.pi then d = d - math.pi * 2 end
+    return d
+end
+
+function sword.update(world, dt)
+    local cfg, player = Config.weapons.sword, world.player
+    if player.stats.swordCount <= 0 then return end
+    sword.timer = sword.timer - dt
+    sword.swingTimer = math.max(0, sword.swingTimer - dt)
+    if sword.timer > 0 then return end
+
+    -- Only swing when something is actually in reach (a bit generous so
+    -- big enemies can be hit by their edge).
+    local target = findNearestEnemy(world, cfg.range + 30)
+    if not target then return end
+
+    sword.timer = cfg.cooldown * player.stats.cooldownMult
+    sword.swingTimer = cfg.swingTime
+    sword.swingAngle = math.atan2(target.y - player.y, target.x - player.x)
+    sword.swingDir = -sword.swingDir -- alternate forehand / backhand
+    player.attackTimer = cfg.swingTime
+    player.attackDuration = cfg.swingTime
+    Audio.play("sword")
+
+    local damage = cfg.damage * player.stats.damageMult
+    for _, enemy in ipairs(world.enemies) do
+        if not enemy.dead then
+            local d = Util.distance(player.x, player.y, enemy.x, enemy.y)
+            local ang = math.atan2(enemy.y - player.y, enemy.x - player.x)
+            if d <= cfg.range + enemy.radius
+               and math.abs(angleDifference(ang, sword.swingAngle)) <= cfg.arc / 2 then
+                local critical = love.math.random() < player.stats.critChance
+                local hitDamage = damage * (critical and player.stats.critMult or 1)
+                enemy:takeDamage(hitDamage, world)
+                world:addDamageNumber(enemy, hitDamage, critical and {1, 0.85, 0.25} or {0.8, 0.92, 1}, critical)
+            end
+        end
+    end
+end
+
+function sword.draw(world)
+    if sword.swingTimer <= 0 then return end
+    local cfg, player = Config.weapons.sword, world.player
+    local progress = 1 - sword.swingTimer / cfg.swingTime
+
+    -- Slash arc effect, aimed at the swing direction (only if its sheet
+    -- has been added to assets/sprites -- the game also runs without it).
+    if Assets.animations.slash then
+        local frame = math.min(4, math.floor(progress * 4) + 1)
+        local cx = player.x + math.cos(sword.swingAngle) * cfg.range * 0.45
+        local cy = player.y + math.sin(sword.swingAngle) * cfg.range * 0.45
+        love.graphics.setColor(1, 1, 1)
+        Assets.drawAnimated("slash", cx, cy, frame, sword.swingAngle, false, 0)
+    end
+
+    -- The sword itself sweeps across the arc.
+    local sweep = sword.swingDir > 0 and (progress - 0.5) or (0.5 - progress)
+    local angle = sword.swingAngle + sweep * cfg.arc
+    local sx = player.x + math.cos(angle) * 34
+    local sy = player.y + math.sin(angle) * 34
+    love.graphics.setColor(1, 1, 1)
+    Assets.draw("sword", sx, sy, angle)
+
+    if Config.debug then
+        love.graphics.setColor(1, 0.4, 0.4, 0.5)
+        love.graphics.arc("line", player.x, player.y, cfg.range,
+            sword.swingAngle - cfg.arc / 2, sword.swingAngle + cfg.arc / 2)
+    end
+end
+
+----------------------------------------------------------------------
 -- Public API used by world.lua
 ----------------------------------------------------------------------
-Weapons.list = { bolt, rocket, orbit, pulse, lightning }
+Weapons.list = { bolt, rocket, orbit, pulse, lightning, sword }
 
 function Weapons.reset()
     for _, weapon in ipairs(Weapons.list) do

@@ -54,8 +54,10 @@ so you never need to match the old resolution. Change `size` if your art should
 appear bigger or smaller. For pixel art set `Config.spriteFilter = "nearest"`.
 If a PNG is missing the game draws a coloured circle instead, so nothing crashes.
 
-Sprites used: `player, slime, bat, golem, bolt, orb, gem, background`
+Sprites used: `player, slime, bat, golem, wraith, charger, boss, bolt, rocket, orb, gem, sword, background`
 (`background` is a tile that repeats forever; make it tileable).
+Animation sheets: `player_sheet` (walk cycle), `player_attack_sheet` (sword swing)
+and `slash_sheet` (the sword's slash effect).
 
 To regenerate the placeholders: `pip install pillow && python3 tools/generate_placeholder_sprites.py`
 
